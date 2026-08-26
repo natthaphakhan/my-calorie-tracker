@@ -1,0 +1,1288 @@
+<!DOCTYPE html>
+<html lang="th">
+  <head>
+    <base target="_top">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+      :root {
+        --ink: #132238;
+        --muted: #64748b;
+        --line: #e5eaf1;
+        --surface: #ffffff;
+        --canvas: #f5f8fc;
+        --primary: #2f6fed;
+        --primary-soft: #edf4ff;
+        --teal: #0f766e;
+        --teal-soft: #eafaf7;
+        --orange: #d97706;
+        --orange-soft: #fff7e8;
+        --danger: #c2414d;
+        --danger-soft: #fff1f2;
+        --shadow: 0 12px 32px rgba(34, 59, 95, 0.07);
+        --radius: 18px;
+      }
+
+      * { box-sizing: border-box; }
+
+      html { background: var(--canvas); }
+
+      body {
+        margin: 0;
+        color: var(--ink);
+        background: var(--canvas);
+        font-family: "Noto Sans Thai", "Leelawadee UI", Tahoma, system-ui, sans-serif;
+        font-size: 15px;
+        line-height: 1.55;
+      }
+
+      button,
+      input,
+      textarea { font: inherit; }
+
+      button { cursor: pointer; }
+
+      button:disabled { cursor: wait; opacity: 0.6; }
+
+      .app-shell {
+        width: min(1180px, calc(100% - 36px));
+        margin: 0 auto;
+        padding: 28px 0 56px;
+      }
+
+      .topbar,
+      .hero,
+      .panel,
+      .stat-card {
+        background: var(--surface);
+        border: 1px solid rgba(224, 231, 240, 0.9);
+        box-shadow: var(--shadow);
+      }
+
+      .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 13px 16px 13px 20px;
+        border-radius: 16px;
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        min-width: 0;
+      }
+
+      .brand-mark {
+        display: grid;
+        width: 40px;
+        height: 40px;
+        flex: 0 0 40px;
+        place-items: center;
+        color: #fff;
+        background: var(--primary);
+        border-radius: 13px;
+      }
+
+      .brand h1 {
+        margin: 0;
+        font-size: 17px;
+        font-weight: 800;
+        letter-spacing: -0.02em;
+      }
+
+      .brand p {
+        margin: 1px 0 0;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .topbar-actions,
+      .hero-actions,
+      .section-actions,
+      .date-switcher,
+      .range-tabs {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .sync-text {
+        color: var(--muted);
+        font-size: 12px;
+        white-space: nowrap;
+      }
+
+      .icon-button,
+      .plain-button,
+      .date-arrow,
+      .range-tab,
+      .text-button,
+      .primary-button,
+      .secondary-button,
+      .danger-button {
+        border: 0;
+        transition: background 160ms ease, color 160ms ease, border-color 160ms ease, transform 160ms ease;
+      }
+
+      .icon-button,
+      .date-arrow {
+        display: inline-grid;
+        width: 38px;
+        height: 38px;
+        place-items: center;
+        color: var(--muted);
+        background: transparent;
+        border-radius: 11px;
+      }
+
+      .icon-button:hover,
+      .date-arrow:hover { color: var(--primary); background: var(--primary-soft); }
+
+      .hero {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 24px;
+        margin-top: 22px;
+        padding: 28px 30px;
+        border-radius: var(--radius);
+      }
+
+      .eyebrow {
+        margin: 0 0 5px;
+        color: var(--primary);
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+      }
+
+      .hero h2 {
+        margin: 0;
+        font-size: clamp(24px, 4vw, 34px);
+        line-height: 1.2;
+        letter-spacing: -0.04em;
+      }
+
+      .hero-copy { max-width: 600px; }
+
+      .hero-copy p:last-child {
+        margin: 8px 0 0;
+        color: var(--muted);
+      }
+
+      .date-control {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        padding: 5px;
+        background: var(--canvas);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+      }
+
+      input[type="date"],
+      input[type="datetime-local"] {
+        min-width: 143px;
+        color: var(--ink);
+        background: transparent;
+        border: 0;
+        outline: 0;
+        font-weight: 700;
+      }
+
+      .today-button {
+        padding: 8px 10px;
+        color: var(--primary);
+        background: var(--surface);
+        border: 1px solid #d8e5ff;
+        border-radius: 9px;
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      .today-button:hover { background: var(--primary-soft); }
+
+      .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 14px;
+        margin-top: 16px;
+      }
+
+      .stat-card {
+        position: relative;
+        min-height: 138px;
+        padding: 20px;
+        overflow: hidden;
+        border-radius: var(--radius);
+      }
+
+      .stat-card::after {
+        position: absolute;
+        right: -26px;
+        bottom: -37px;
+        width: 110px;
+        height: 110px;
+        content: "";
+        background: var(--primary-soft);
+        border-radius: 50%;
+        opacity: 0.8;
+      }
+
+      .stat-card.teal::after { background: var(--teal-soft); }
+      .stat-card.orange::after { background: var(--orange-soft); }
+      .stat-card.pink::after { background: var(--danger-soft); }
+
+      .stat-label,
+      .stat-note {
+        position: relative;
+        z-index: 1;
+        color: var(--muted);
+        font-size: 13px;
+      }
+
+      .stat-value {
+        position: relative;
+        z-index: 1;
+        margin-top: 7px;
+        font-size: 28px;
+        font-weight: 800;
+        letter-spacing: -0.04em;
+      }
+
+      .stat-note { margin-top: 4px; font-size: 12px; }
+
+      .dashboard-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1.25fr) minmax(320px, 0.75fr);
+        gap: 16px;
+        margin-top: 16px;
+      }
+
+      .panel {
+        min-width: 0;
+        padding: 22px;
+        border-radius: var(--radius);
+      }
+
+      .section-heading {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 18px;
+      }
+
+      .section-heading h2 {
+        margin: 0;
+        font-size: 17px;
+        letter-spacing: -0.02em;
+      }
+
+      .section-heading p {
+        margin: 3px 0 0;
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .range-tabs {
+        padding: 3px;
+        background: var(--canvas);
+        border-radius: 10px;
+      }
+
+      .range-tab {
+        padding: 6px 9px;
+        color: var(--muted);
+        background: transparent;
+        border-radius: 8px;
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      .range-tab.active { color: var(--primary); background: var(--surface); box-shadow: 0 2px 7px rgba(34, 59, 95, 0.08); }
+
+      .chart {
+        display: flex;
+        align-items: flex-end;
+        gap: 8px;
+        min-height: 205px;
+        padding: 18px 4px 0;
+        overflow-x: auto;
+      }
+
+      .chart-column {
+        display: flex;
+        min-width: 31px;
+        height: 170px;
+        flex: 1 1 0;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 7px;
+      }
+
+      .bar-track {
+        display: flex;
+        width: 100%;
+        max-width: 29px;
+        height: 143px;
+        align-items: flex-end;
+        background: #f0f3f8;
+        border-radius: 8px 8px 4px 4px;
+      }
+
+      .bar-fill {
+        width: 100%;
+        min-height: 4px;
+        background: linear-gradient(180deg, #77a5ff, var(--primary));
+        border-radius: 8px 8px 4px 4px;
+        transition: height 220ms ease;
+      }
+
+      .bar-fill.over { background: linear-gradient(180deg, #f6b75c, var(--orange)); }
+
+      .chart-label {
+        color: var(--muted);
+        font-size: 10px;
+        white-space: nowrap;
+      }
+
+      .chart-column.is-selected .chart-label { color: var(--primary); font-weight: 800; }
+
+      .range-summary {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+        margin-top: 14px;
+      }
+
+      .mini-stat {
+        padding: 11px 12px;
+        background: var(--canvas);
+        border-radius: 11px;
+      }
+
+      .mini-stat span { display: block; color: var(--muted); font-size: 11px; }
+      .mini-stat strong { display: block; margin-top: 2px; font-size: 15px; }
+
+      .progress-block {
+        padding: 16px;
+        background: var(--primary-soft);
+        border-radius: 14px;
+      }
+
+      .progress-header {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 9px;
+        color: #34537f;
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      .progress-track {
+        height: 10px;
+        overflow: hidden;
+        background: #dce8fb;
+        border-radius: 99px;
+      }
+
+      .progress-bar {
+        width: 0;
+        height: 100%;
+        background: var(--primary);
+        border-radius: inherit;
+        transition: width 220ms ease;
+      }
+
+      .progress-bar.over { background: var(--orange); }
+
+      .food-list { display: grid; gap: 10px; }
+
+      .food-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 12px 0;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .food-row:last-child { border-bottom: 0; }
+
+      .food-main { min-width: 0; }
+      .food-title { overflow: hidden; font-weight: 800; text-overflow: ellipsis; white-space: nowrap; }
+      .food-meta { margin-top: 2px; color: var(--muted); font-size: 12px; }
+      .food-numbers { flex: 0 0 auto; text-align: right; }
+      .food-calorie { color: var(--ink); font-weight: 800; }
+      .food-protein { color: var(--teal); font-size: 12px; }
+
+      .primary-button,
+      .secondary-button,
+      .danger-button {
+        padding: 10px 14px;
+        border-radius: 10px;
+        font-size: 13px;
+        font-weight: 800;
+      }
+
+      .primary-button { color: #fff; background: var(--primary); box-shadow: 0 5px 12px rgba(47, 111, 237, 0.18); }
+      .primary-button:hover { background: #205fd8; transform: translateY(-1px); }
+      .secondary-button { color: var(--ink); background: var(--surface); border: 1px solid var(--line); }
+      .secondary-button:hover { background: var(--canvas); border-color: #cbd5e1; }
+      .danger-button { color: var(--danger); background: var(--danger-soft); }
+      .danger-button:hover { background: #ffe2e5; }
+
+      .records-panel { margin-top: 16px; }
+
+      .search-box {
+        width: min(270px, 45vw);
+        padding: 10px 12px;
+        color: var(--ink);
+        background: var(--canvas);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        outline: none;
+      }
+
+      .search-box:focus,
+      .form-input:focus,
+      textarea:focus { border-color: #8fb1f6; box-shadow: 0 0 0 3px rgba(47, 111, 237, 0.11); }
+
+      .table-wrap { overflow-x: auto; }
+
+      table { width: 100%; min-width: 760px; border-collapse: collapse; }
+      th,
+      td { padding: 13px 10px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: middle; }
+      th { color: var(--muted); font-size: 11px; font-weight: 800; white-space: nowrap; }
+      td { font-size: 13px; }
+      td:first-child { color: var(--muted); white-space: nowrap; }
+      .table-title { max-width: 190px; overflow: hidden; font-weight: 800; text-overflow: ellipsis; white-space: nowrap; }
+      .table-subtitle { max-width: 190px; overflow: hidden; color: var(--muted); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+      .table-actions { display: flex; gap: 6px; justify-content: flex-end; }
+      .table-action { padding: 6px 8px; color: var(--muted); background: transparent; border: 1px solid var(--line); border-radius: 8px; font-size: 11px; font-weight: 700; }
+      .table-action:hover { color: var(--primary); border-color: #b8cdf8; background: var(--primary-soft); }
+      .table-action.delete:hover { color: var(--danger); border-color: #f4bfc5; background: var(--danger-soft); }
+
+      .empty-state {
+        padding: 30px 14px;
+        color: var(--muted);
+        text-align: center;
+        background: var(--canvas);
+        border-radius: 13px;
+      }
+
+      .empty-state strong { display: block; margin-bottom: 3px; color: var(--ink); }
+
+      .modal-backdrop {
+        position: fixed;
+        z-index: 20;
+        inset: 0;
+        display: grid;
+        padding: 18px;
+        place-items: center;
+        background: rgba(15, 23, 42, 0.38);
+        backdrop-filter: blur(3px);
+      }
+
+      .modal-backdrop[hidden] { display: none; }
+
+      .modal {
+        width: min(100%, 650px);
+        max-height: calc(100vh - 36px);
+        overflow: auto;
+        padding: 25px;
+        background: var(--surface);
+        border-radius: 20px;
+        box-shadow: 0 24px 70px rgba(15, 23, 42, 0.2);
+      }
+
+      .modal-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 18px;
+        margin-bottom: 20px;
+      }
+
+      .modal-header h2 { margin: 0; font-size: 21px; letter-spacing: -0.03em; }
+      .modal-header p { margin: 4px 0 0; color: var(--muted); font-size: 12px; }
+
+      .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+      .form-field { min-width: 0; }
+      .form-field.full { grid-column: 1 / -1; }
+      .form-label { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 6px; color: var(--ink); font-size: 12px; font-weight: 800; }
+      .form-label span { color: var(--muted); font-size: 11px; font-weight: 500; }
+
+      .form-input,
+      textarea {
+        width: 100%;
+        padding: 10px 12px;
+        color: var(--ink);
+        background: var(--surface);
+        border: 1px solid #d8e0eb;
+        border-radius: 10px;
+        outline: none;
+      }
+
+      .form-input[type="number"] { text-align: right; }
+      textarea { min-height: 80px; resize: vertical; }
+
+      .calculated-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 16px; }
+      .calculated-item { padding: 12px; background: var(--teal-soft); border-radius: 11px; }
+      .calculated-item span { display: block; color: var(--teal); font-size: 11px; }
+      .calculated-item strong { display: block; margin-top: 2px; color: #125e58; font-size: 17px; }
+
+      .tdee-hint { margin: 7px 0 0; color: var(--muted); font-size: 11px; }
+      .modal-footer { display: flex; justify-content: flex-end; gap: 8px; margin-top: 22px; }
+
+      .toast {
+        position: fixed;
+        z-index: 30;
+        right: 22px;
+        bottom: 22px;
+        max-width: min(360px, calc(100vw - 44px));
+        padding: 12px 15px;
+        color: #fff;
+        background: #16325c;
+        border-radius: 11px;
+        box-shadow: 0 12px 30px rgba(15, 23, 42, 0.2);
+        font-size: 13px;
+        opacity: 0;
+        pointer-events: none;
+        transform: translateY(12px);
+        transition: opacity 180ms ease, transform 180ms ease;
+      }
+
+      .toast.show { opacity: 1; transform: translateY(0); }
+      .toast.error { background: var(--danger); }
+
+      .loading-cover {
+        position: fixed;
+        z-index: 15;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        background: rgba(245, 248, 252, 0.7);
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 160ms ease;
+      }
+
+      .loading-cover.show { opacity: 1; }
+      .spinner { width: 30px; height: 30px; border: 3px solid #cfe0ff; border-top-color: var(--primary); border-radius: 50%; animation: spin 720ms linear infinite; }
+      @keyframes spin { to { transform: rotate(360deg); } }
+
+      .hidden { display: none !important; }
+
+      @media (max-width: 940px) {
+        .stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .dashboard-grid { grid-template-columns: 1fr; }
+      }
+
+      @media (max-width: 620px) {
+        .app-shell { width: min(100% - 24px, 1180px); padding-top: 12px; }
+        .topbar { padding: 11px 12px; }
+        .brand-mark { width: 36px; height: 36px; flex-basis: 36px; border-radius: 11px; }
+        .brand h1 { font-size: 15px; }
+        .sync-text { display: none; }
+        .hero { display: block; padding: 22px 18px; }
+        .hero-actions { margin-top: 18px; }
+        .date-control { justify-content: space-between; }
+        .date-control input[type="date"],
+        .date-control input[type="datetime-local"] { flex: 1; }
+        .stats-grid { gap: 10px; margin-top: 10px; }
+        .stat-card { min-height: 124px; padding: 15px; }
+        .stat-value { font-size: 24px; }
+        .panel { padding: 17px 15px; }
+        .section-heading { display: block; }
+        .section-heading .range-tabs,
+        .section-heading .section-actions { margin-top: 12px; }
+        .search-box { width: 100%; }
+        .section-actions { align-items: stretch; flex-direction: column; }
+        .range-tabs { width: max-content; }
+        .food-row { align-items: flex-start; }
+        .food-numbers { text-align: right; }
+        .form-grid { grid-template-columns: 1fr; }
+        .form-field.full { grid-column: auto; }
+        .modal { padding: 20px 16px; }
+        .modal-footer { position: sticky; bottom: -20px; margin-right: -16px; margin-left: -16px; padding: 12px 16px; background: var(--surface); }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="loading-cover" id="loading-cover" aria-hidden="true"><div class="spinner"></div></div>
+
+    <div class="app-shell">
+      <header class="topbar">
+        <div class="brand">
+          <div class="brand-mark" aria-hidden="true">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M6 3v7"></path><path d="M4 3v4a2 2 0 0 0 4 0V3"></path><path d="M6 10v11"></path><path d="M18 3v18"></path><path d="M18 3c-2 2-3 4-3 6 0 2 1 3 3 3"></path>
+            </svg>
+          </div>
+          <div>
+            <h1>แคลอรีของฉัน</h1>
+            <p>บันทึกอาหารและดูภาพรวมในแต่ละวัน</p>
+          </div>
+        </div>
+        <div class="topbar-actions">
+          <span class="sync-text" id="sync-text">กำลังโหลดข้อมูล...</span>
+          <button class="icon-button" id="refresh-button" type="button" aria-label="รีเฟรชข้อมูล" title="รีเฟรชข้อมูล">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8.1 8.1 0 0 0-15.5-2M4 5v4h4"></path><path d="M4 13a8.1 8.1 0 0 0 15.5 2M20 19v-4h-4"></path></svg>
+          </button>
+        </div>
+      </header>
+
+      <main>
+        <section class="hero">
+          <div class="hero-copy">
+            <p class="eyebrow">สรุปประจำวัน</p>
+            <h2 id="hero-date-title">วันนี้</h2>
+            <p>ติดตามแคลอรี โปรตีน และเปรียบเทียบกับ TDEE ของคุณ</p>
+          </div>
+          <div class="hero-actions">
+            <div class="date-control">
+              <button class="date-arrow" id="previous-day" type="button" aria-label="วันก่อนหน้า">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"></path></svg>
+              </button>
+              <input id="dashboard-date" type="date" aria-label="เลือกวันที่">
+              <button class="date-arrow" id="next-day" type="button" aria-label="วันถัดไป">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></svg>
+              </button>
+              <button class="today-button" id="today-button" type="button">วันนี้</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="stats-grid" aria-label="สรุปตัวเลข">
+          <article class="stat-card">
+            <div class="stat-label">แคลอรีที่รับประทาน</div>
+            <div class="stat-value" id="calorie-total">0 kcal</div>
+            <div class="stat-note" id="calorie-note">จากรายการอาหาร 0 รายการ</div>
+          </article>
+          <article class="stat-card teal">
+            <div class="stat-label">โปรตีนรวม</div>
+            <div class="stat-value" id="protein-total">0 g</div>
+            <div class="stat-note">รวมจากอาหารของวันที่เลือก</div>
+          </article>
+          <article class="stat-card orange">
+            <div class="stat-label">TDEE ล่าสุด</div>
+            <div class="stat-value" id="tdee-total">ยังไม่มี</div>
+            <div class="stat-note" id="tdee-note">กรอก TDEE เมื่อเพิ่มรายการแรก</div>
+          </article>
+          <article class="stat-card pink">
+            <div class="stat-label" id="remaining-label">เหลือจาก TDEE</div>
+            <div class="stat-value" id="remaining-total">ยังไม่มี</div>
+            <div class="stat-note" id="remaining-note">ระบบจะคำนวณให้อัตโนมัติ</div>
+          </article>
+        </section>
+
+        <section class="dashboard-grid">
+          <article class="panel">
+            <div class="section-heading">
+              <div>
+                <h2>แนวโน้มแคลอรี</h2>
+                <p id="trend-caption">ย้อนหลัง 7 วันจนถึงวันที่เลือก</p>
+              </div>
+              <div class="range-tabs" role="tablist" aria-label="ช่วงเวลา">
+                <button class="range-tab active" type="button" data-range="7">7 วัน</button>
+                <button class="range-tab" type="button" data-range="30">30 วัน</button>
+                <button class="range-tab" type="button" data-range="90">90 วัน</button>
+              </div>
+            </div>
+            <div class="chart" id="trend-chart"></div>
+            <div class="range-summary">
+              <div class="mini-stat"><span>แคลอรีรวม</span><strong id="range-calories">0 kcal</strong></div>
+              <div class="mini-stat"><span>เฉลี่ยต่อวัน</span><strong id="range-average">0 kcal</strong></div>
+              <div class="mini-stat"><span>โปรตีนรวม</span><strong id="range-protein">0 g</strong></div>
+            </div>
+          </article>
+
+          <article class="panel">
+            <div class="section-heading">
+              <div>
+                <h2>รายการของวัน</h2>
+                <p id="daily-list-caption">วันที่เลือก</p>
+              </div>
+              <button class="primary-button" id="add-entry-button" type="button">+ เพิ่มรายการ</button>
+            </div>
+            <div class="progress-block">
+              <div class="progress-header"><span>ความคืบหน้าเทียบกับ TDEE</span><span id="progress-percent">ยังไม่มี TDEE</span></div>
+              <div class="progress-track"><div class="progress-bar" id="progress-bar"></div></div>
+            </div>
+            <div class="food-list" id="daily-list" style="margin-top: 14px;"></div>
+          </article>
+        </section>
+
+        <section class="panel records-panel">
+          <div class="section-heading">
+            <div>
+              <h2>รายการอาหารทั้งหมด</h2>
+              <p id="record-count">0 รายการ</p>
+            </div>
+            <div class="section-actions">
+              <input class="search-box" id="records-search" type="search" placeholder="ค้นหาชื่ออาหารหรือหมายเหตุ..." aria-label="ค้นหารายการอาหาร">
+              <button class="secondary-button" id="add-entry-button-bottom" type="button">+ เพิ่มรายการ</button>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>สร้างเมื่อ</th>
+                  <th>อาหาร</th>
+                  <th>หน่วย</th>
+                  <th>แคลอรี</th>
+                  <th>โปรตีน</th>
+                  <th>TDEE</th>
+                  <th>แก้ไขล่าสุด</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="records-table-body"></tbody>
+            </table>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <div class="modal-backdrop" id="entry-modal" hidden>
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+        <div class="modal-header">
+          <div>
+            <h2 id="modal-title">เพิ่มรายการอาหาร</h2>
+            <p>กรอกข้อมูลอาหาร ระบบจะคำนวณแคลอรีและโปรตีนรวมให้</p>
+          </div>
+          <button class="icon-button" id="close-modal-button" type="button" aria-label="ปิดหน้าต่าง">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>
+          </button>
+        </div>
+
+        <form id="entry-form">
+          <input id="entry-id" type="hidden">
+          <div class="form-grid">
+            <div class="form-field full">
+              <label class="form-label" for="entry-title">ชื่ออาหาร</label>
+              <input class="form-input" id="entry-title" type="text" maxlength="120" placeholder="เช่น ข้าวกะเพราไก่" required>
+            </div>
+            <div class="form-field">
+              <label class="form-label" for="entry-date">วันที่และเวลารับประทาน</label>
+              <input class="form-input" id="entry-date" type="datetime-local" required>
+            </div>
+            <div class="form-field">
+              <label class="form-label" for="entry-unit">ปริมาณ / หน่วย <span>ใช้เป็นจำนวน</span></label>
+              <input class="form-input" id="entry-unit" type="number" min="0.01" step="0.01" placeholder="1" required>
+            </div>
+            <div class="form-field">
+              <label class="form-label" for="entry-calorie-per-unit">แคลอรีต่อหน่วย</label>
+              <input class="form-input" id="entry-calorie-per-unit" type="number" min="0" step="0.01" placeholder="250" required>
+            </div>
+            <div class="form-field">
+              <label class="form-label" for="entry-protein-per-unit">โปรตีนต่อหน่วย (g)</label>
+              <input class="form-input" id="entry-protein-per-unit" type="number" min="0" step="0.01" placeholder="20" required>
+            </div>
+            <div class="form-field full">
+              <label class="form-label" for="entry-tdee">TDEE (kcal / วัน) <span id="tdee-form-label">รายการแรกต้องกรอก</span></label>
+              <input class="form-input" id="entry-tdee" type="number" min="0.01" step="0.01" placeholder="เช่น 2,000" required>
+              <p class="tdee-hint" id="tdee-form-hint">เมื่อกรอกแล้ว ระบบจะเติมค่า TDEE ล่าสุดให้รายการถัดไปโดยอัตโนมัติ</p>
+            </div>
+            <div class="form-field full">
+              <label class="form-label" for="entry-remark">หมายเหตุ <span>ไม่บังคับ</span></label>
+              <textarea id="entry-remark" maxlength="500" placeholder="เช่น มื้อเช้า, เพิ่มผัก, สูตรร้าน..." ></textarea>
+            </div>
+          </div>
+
+          <div class="calculated-grid">
+            <div class="calculated-item"><span>แคลอรีรวม</span><strong id="form-total-calorie">0 kcal</strong></div>
+            <div class="calculated-item"><span>โปรตีนรวม</span><strong id="form-total-protein">0 g</strong></div>
+          </div>
+
+          <div class="modal-footer">
+            <button class="secondary-button" id="cancel-modal-button" type="button">ยกเลิก</button>
+            <button class="primary-button" id="save-entry-button" type="submit">บันทึกรายการ</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+    <script>
+      const APP_TIME_ZONE = 'Asia/Bangkok';
+      const THAI_NUMBER = new Intl.NumberFormat('th-TH', { maximumFractionDigits: 2 });
+      const THAI_INTEGER = new Intl.NumberFormat('th-TH', { maximumFractionDigits: 0 });
+      const state = {
+        records: [],
+        latestTdee: null,
+        selectedDate: todayInput(),
+        rangeDays: 7,
+        search: '',
+        busy: false,
+        toastTimer: null
+      };
+
+      const $ = (selector) => document.querySelector(selector);
+
+      document.addEventListener('DOMContentLoaded', () => {
+        bindEvents();
+        $('#dashboard-date').value = state.selectedDate;
+        $('#entry-date').value = dateTimeForSelectedDate();
+        renderAll();
+        loadData();
+      });
+
+      function bindEvents() {
+        $('#refresh-button').addEventListener('click', loadData);
+        $('#dashboard-date').addEventListener('change', (event) => {
+          state.selectedDate = event.target.value || todayInput();
+          renderAll();
+        });
+        $('#previous-day').addEventListener('click', () => changeSelectedDate(-1));
+        $('#next-day').addEventListener('click', () => changeSelectedDate(1));
+        $('#today-button').addEventListener('click', () => {
+          state.selectedDate = todayInput();
+          $('#dashboard-date').value = state.selectedDate;
+          renderAll();
+        });
+        document.querySelectorAll('.range-tab').forEach((button) => {
+          button.addEventListener('click', () => {
+            state.rangeDays = Number(button.dataset.range);
+            document.querySelectorAll('.range-tab').forEach((tab) => tab.classList.toggle('active', tab === button));
+            renderTrend();
+          });
+        });
+        $('#add-entry-button').addEventListener('click', () => openEntryModal());
+        $('#add-entry-button-bottom').addEventListener('click', () => openEntryModal());
+        $('#close-modal-button').addEventListener('click', closeEntryModal);
+        $('#cancel-modal-button').addEventListener('click', closeEntryModal);
+        $('#entry-modal').addEventListener('click', (event) => {
+          if (event.target === $('#entry-modal')) closeEntryModal();
+        });
+        $('#entry-form').addEventListener('submit', submitEntry);
+        ['entry-unit', 'entry-calorie-per-unit', 'entry-protein-per-unit'].forEach((id) => {
+          $('#' + id).addEventListener('input', renderFormTotals);
+        });
+        $('#records-search').addEventListener('input', (event) => {
+          state.search = event.target.value.trim().toLowerCase();
+          renderRecords();
+        });
+        document.addEventListener('keydown', (event) => {
+          if (event.key === 'Escape' && !$('#entry-modal').hidden) closeEntryModal();
+        });
+      }
+
+      function loadData() {
+        if (!window.google || !google.script || !google.script.run) {
+          $('#sync-text').textContent = 'เปิดผ่าน Apps Script Web App';
+          return;
+        }
+        setBusy(true);
+        $('#sync-text').textContent = 'กำลังโหลดข้อมูล...';
+        google.script.run
+          .withSuccessHandler((data) => {
+            state.records = Array.isArray(data.records) ? data.records : [];
+            state.latestTdee = data.latestTdee === null ? null : Number(data.latestTdee);
+            if (data.today && !state.selectedDate) state.selectedDate = data.today;
+            $('#dashboard-date').value = state.selectedDate;
+            renderAll();
+            $('#sync-text').textContent = 'อัปเดตล่าสุด ' + formatTime(new Date());
+            setBusy(false);
+          })
+          .withFailureHandler((error) => {
+            setBusy(false);
+            $('#sync-text').textContent = 'โหลดข้อมูลไม่สำเร็จ';
+            showToast(errorMessage(error), true);
+          })
+          .getAppData();
+      }
+
+      function submitEntry(event) {
+        event.preventDefault();
+        if (state.busy) return;
+
+        const payload = {
+          id: $('#entry-id').value,
+          title: $('#entry-title').value.trim(),
+          createdAt: $('#entry-date').value,
+          unit: $('#entry-unit').value,
+          caloriePerUnit: $('#entry-calorie-per-unit').value,
+          proteinPerUnit: $('#entry-protein-per-unit').value,
+          tdee: $('#entry-tdee').value,
+          remark: $('#entry-remark').value.trim()
+        };
+
+        if (!payload.title || !payload.createdAt || !payload.unit || payload.caloriePerUnit === '' || payload.proteinPerUnit === '' || payload.tdee === '') {
+          showToast('กรุณากรอกข้อมูลที่จำเป็นให้ครบถ้วน', true);
+          return;
+        }
+
+        if (!window.google || !google.script || !google.script.run) {
+          showToast('กรุณาเปิดหน้านี้ผ่าน Apps Script Web App', true);
+          return;
+        }
+
+        setBusy(true);
+        $('#save-entry-button').textContent = 'กำลังบันทึก...';
+        google.script.run
+          .withSuccessHandler((data) => {
+            state.records = Array.isArray(data.records) ? data.records : [];
+            state.latestTdee = data.latestTdee === null ? null : Number(data.latestTdee);
+            state.selectedDate = datePart(payload.createdAt);
+            $('#dashboard-date').value = state.selectedDate;
+            closeEntryModal();
+            renderAll();
+            $('#sync-text').textContent = 'บันทึกแล้ว ' + formatTime(new Date());
+            showToast(payload.id ? 'แก้ไขรายการเรียบร้อยแล้ว' : 'เพิ่มรายการเรียบร้อยแล้ว');
+            setBusy(false);
+          })
+          .withFailureHandler((error) => {
+            setBusy(false);
+            $('#save-entry-button').textContent = 'บันทึกรายการ';
+            showToast(errorMessage(error), true);
+          })
+          .saveRecord(payload);
+      }
+
+      function deleteEntry(id) {
+        const record = state.records.find((item) => item.id === id);
+        if (!record || !window.google || !google.script || !google.script.run) return;
+        if (!window.confirm('ต้องการลบรายการ “' + record.title + '” ใช่หรือไม่?')) return;
+
+        setBusy(true);
+        google.script.run
+          .withSuccessHandler((data) => {
+            state.records = Array.isArray(data.records) ? data.records : [];
+            state.latestTdee = data.latestTdee === null ? null : Number(data.latestTdee);
+            renderAll();
+            showToast('ลบรายการเรียบร้อยแล้ว');
+            setBusy(false);
+          })
+          .withFailureHandler((error) => {
+            setBusy(false);
+            showToast(errorMessage(error), true);
+          })
+          .deleteRecord(id);
+      }
+
+      function openEntryModal(record) {
+        const editing = Boolean(record);
+        $('#modal-title').textContent = editing ? 'แก้ไขรายการอาหาร' : 'เพิ่มรายการอาหาร';
+        $('#entry-id').value = editing ? record.id : '';
+        $('#entry-title').value = editing ? record.title : '';
+        $('#entry-date').value = editing ? toDateTimeInput(record.createdAt) : dateTimeForSelectedDate();
+        $('#entry-unit').value = editing ? record.unit : '';
+        $('#entry-calorie-per-unit').value = editing ? record.caloriePerUnit : '';
+        $('#entry-protein-per-unit').value = editing ? record.proteinPerUnit : '';
+        $('#entry-tdee').value = editing ? record.tdee : (state.latestTdee || '');
+        $('#entry-remark').value = editing ? record.remark : '';
+        $('#save-entry-button').textContent = editing ? 'บันทึกการแก้ไข' : 'บันทึกรายการ';
+        updateTdeeHint();
+        renderFormTotals();
+        $('#entry-modal').hidden = false;
+        document.body.style.overflow = 'hidden';
+        window.setTimeout(() => $('#entry-title').focus(), 20);
+      }
+
+      function closeEntryModal() {
+        $('#entry-modal').hidden = true;
+        document.body.style.overflow = '';
+        $('#save-entry-button').textContent = 'บันทึกรายการ';
+      }
+
+      function renderAll() {
+        $('#hero-date-title').textContent = heroDateTitle(state.selectedDate);
+        $('#daily-list-caption').textContent = formatDateThai(state.selectedDate);
+        renderDashboard();
+        renderTrend();
+        renderDailyList();
+        renderRecords();
+      }
+
+      function renderDashboard() {
+        const dailyRecords = recordsForDate(state.selectedDate);
+        const calories = sum(dailyRecords, 'totalCalorie');
+        const protein = sum(dailyRecords, 'totalProtein');
+        const tdee = state.latestTdee;
+        const remaining = tdee === null ? null : tdee - calories;
+        const percent = tdee && tdee > 0 ? (calories / tdee) * 100 : null;
+
+        $('#calorie-total').textContent = formatNumber(calories) + ' kcal';
+        $('#calorie-note').textContent = 'จากรายการอาหาร ' + formatNumber(dailyRecords.length, true) + ' รายการ';
+        $('#protein-total').textContent = formatNumber(protein) + ' g';
+        $('#tdee-total').textContent = tdee === null ? 'ยังไม่มี' : formatNumber(tdee) + ' kcal';
+        $('#tdee-note').textContent = tdee === null ? 'กรอก TDEE เมื่อเพิ่มรายการแรก' : 'ใช้ค่า TDEE ล่าสุดจากรายการที่แก้ไข';
+        $('#remaining-label').textContent = remaining !== null && remaining < 0 ? 'เกิน TDEE' : 'เหลือจาก TDEE';
+        $('#remaining-total').textContent = remaining === null ? 'ยังไม่มี' : formatNumber(Math.abs(remaining)) + ' kcal';
+        $('#remaining-note').textContent = remaining === null ? 'ระบบจะคำนวณให้อัตโนมัติ' : (remaining < 0 ? 'ควรตรวจสอบปริมาณแคลอรีวันนี้' : 'เป้าหมายที่ยังรับประทานได้');
+
+        const progress = percent === null ? 0 : Math.min(percent, 100);
+        $('#progress-bar').style.width = progress + '%';
+        $('#progress-bar').classList.toggle('over', percent !== null && percent > 100);
+        $('#progress-percent').textContent = percent === null ? 'ยังไม่มี TDEE' : formatNumber(percent) + '%';
+      }
+
+      function renderTrend() {
+        const days = buildDateRange(state.selectedDate, state.rangeDays);
+        const summaries = days.map((date) => {
+          const records = recordsForDate(date);
+          return { date, calories: sum(records, 'totalCalorie'), protein: sum(records, 'totalProtein') };
+        });
+        const maxValue = Math.max(state.latestTdee || 0, ...summaries.map((item) => item.calories), 1);
+        const chart = $('#trend-chart');
+        chart.innerHTML = summaries.map((item, index) => {
+          const height = item.calories ? Math.max((item.calories / maxValue) * 100, 5) : 3;
+          const over = state.latestTdee && item.calories > state.latestTdee;
+          const dayOfMonth = Number(item.date.slice(-2));
+          const showLabel = state.rangeDays === 7
+            || (state.rangeDays === 30 && (dayOfMonth === 1 || dayOfMonth % 5 === 0))
+            || (state.rangeDays === 90 && (index === 0 || index === summaries.length - 1 || index % 10 === 0));
+          const label = showLabel ? shortDate(item.date) : '';
+          return '<div class="chart-column ' + (item.date === state.selectedDate ? 'is-selected' : '') + '" title="' + formatDateThai(item.date) + ': ' + formatNumber(item.calories) + ' kcal">'
+            + '<div class="bar-track"><div class="bar-fill ' + (over ? 'over' : '') + '" style="height:' + height + '%"></div></div>'
+            + '<span class="chart-label">' + label + '</span></div>';
+        }).join('');
+
+        const rangeCalories = sum(summaries, 'calories');
+        const rangeProtein = sum(summaries, 'protein');
+        $('#trend-caption').textContent = 'ย้อนหลัง ' + state.rangeDays + ' วันจนถึงวันที่เลือก';
+        $('#range-calories').textContent = formatNumber(rangeCalories) + ' kcal';
+        $('#range-average').textContent = formatNumber(rangeCalories / state.rangeDays) + ' kcal';
+        $('#range-protein').textContent = formatNumber(rangeProtein) + ' g';
+      }
+
+      function renderDailyList() {
+        const records = recordsForDate(state.selectedDate).sort(sortByUpdatedDesc);
+        if (!records.length) {
+          $('#daily-list').innerHTML = '<div class="empty-state"><strong>ยังไม่มีรายการในวันนี้</strong><span>กด “เพิ่มรายการ” เพื่อเริ่มบันทึกอาหาร</span></div>';
+          return;
+        }
+
+        $('#daily-list').innerHTML = records.map((record) => {
+          const meta = formatNumber(record.unit) + ' หน่วย × ' + formatNumber(record.caloriePerUnit) + ' kcal';
+          return '<div class="food-row">'
+            + '<div class="food-main"><div class="food-title">' + escapeHtml(record.title) + '</div><div class="food-meta">' + meta + (record.remark ? ' · ' + escapeHtml(record.remark) : '') + '</div></div>'
+            + '<div class="food-numbers"><div class="food-calorie">' + formatNumber(record.totalCalorie) + ' kcal</div><div class="food-protein">โปรตีน ' + formatNumber(record.totalProtein) + ' g</div></div>'
+            + '</div>';
+        }).join('');
+      }
+
+      function renderRecords() {
+        const filtered = state.records
+          .filter((record) => {
+            if (!state.search) return true;
+            return (record.title + ' ' + record.remark).toLowerCase().includes(state.search);
+          })
+          .sort(sortByCreatedDesc);
+        $('#record-count').textContent = formatNumber(filtered.length, true) + ' รายการ';
+
+        if (!filtered.length) {
+          $('#records-table-body').innerHTML = '<tr><td colspan="8"><div class="empty-state"><strong>' + (state.search ? 'ไม่พบรายการที่ค้นหา' : 'ยังไม่มีข้อมูล') + '</strong><span>' + (state.search ? 'ลองใช้คำค้นหาอื่น' : 'เพิ่มรายการแรกของคุณได้จากปุ่มด้านบน') + '</span></div></td></tr>';
+          return;
+        }
+
+        $('#records-table-body').innerHTML = filtered.map((record) => {
+          return '<tr>'
+            + '<td>' + formatDateTimeThai(record.createdAt) + '</td>'
+            + '<td><div class="table-title">' + escapeHtml(record.title) + '</div><div class="table-subtitle">' + (record.remark ? escapeHtml(record.remark) : 'ไม่มีหมายเหตุ') + '</div></td>'
+            + '<td>' + formatNumber(record.unit) + '</td>'
+            + '<td>' + formatNumber(record.totalCalorie) + ' kcal</td>'
+            + '<td>' + formatNumber(record.totalProtein) + ' g</td>'
+            + '<td>' + formatNumber(record.tdee) + '</td>'
+            + '<td>' + formatDateTimeThai(record.updatedAt) + '</td>'
+            + '<td><div class="table-actions"><button class="table-action" type="button" data-edit-id="' + escapeHtml(record.id) + '">แก้ไข</button><button class="table-action delete" type="button" data-delete-id="' + escapeHtml(record.id) + '">ลบ</button></div></td>'
+            + '</tr>';
+        }).join('');
+
+        document.querySelectorAll('[data-edit-id]').forEach((button) => {
+          button.addEventListener('click', () => {
+            const record = state.records.find((item) => item.id === button.dataset.editId);
+            if (record) openEntryModal(record);
+          });
+        });
+        document.querySelectorAll('[data-delete-id]').forEach((button) => {
+          button.addEventListener('click', () => deleteEntry(button.dataset.deleteId));
+        });
+      }
+
+      function renderFormTotals() {
+        const unit = Number($('#entry-unit').value) || 0;
+        const caloriePerUnit = Number($('#entry-calorie-per-unit').value) || 0;
+        const proteinPerUnit = Number($('#entry-protein-per-unit').value) || 0;
+        $('#form-total-calorie').textContent = formatNumber(unit * caloriePerUnit) + ' kcal';
+        $('#form-total-protein').textContent = formatNumber(unit * proteinPerUnit) + ' g';
+      }
+
+      function updateTdeeHint() {
+        $('#tdee-form-label').textContent = state.latestTdee === null ? 'รายการแรกต้องกรอก' : 'เติมค่าล่าสุดไว้ให้แล้ว แก้ไขได้';
+        $('#tdee-form-hint').textContent = state.latestTdee === null
+          ? 'รายการแรกต้องกรอกค่า TDEE เพื่อให้ระบบใช้คำนวณเป้าหมาย'
+          : 'ระบบเติมค่า TDEE ล่าสุดจาก updated_at ให้แล้ว คุณสามารถปรับค่าได้';
+      }
+
+      function changeSelectedDate(days) {
+        state.selectedDate = shiftDate(state.selectedDate, days);
+        $('#dashboard-date').value = state.selectedDate;
+        renderAll();
+      }
+
+      function recordsForDate(date) {
+        return state.records.filter((record) => datePart(record.createdAt) === date);
+      }
+
+      function buildDateRange(endDate, count) {
+        const dates = [];
+        for (let index = count - 1; index >= 0; index -= 1) dates.push(shiftDate(endDate, -index));
+        return dates;
+      }
+
+      function shiftDate(dateString, days) {
+        const date = new Date(dateString + 'T12:00:00Z');
+        date.setUTCDate(date.getUTCDate() + days);
+        return date.toISOString().slice(0, 10);
+      }
+
+      function todayInput() {
+        const parts = new Intl.DateTimeFormat('en-US', {
+          timeZone: APP_TIME_ZONE,
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit'
+        }).formatToParts(new Date()).reduce((result, part) => {
+          result[part.type] = part.value;
+          return result;
+        }, {});
+        return parts.year + '-' + parts.month + '-' + parts.day;
+      }
+
+      function heroDateTitle(dateString) {
+        if (dateString === todayInput()) return 'วันนี้';
+        return formatDateThai(dateString);
+      }
+
+      function formatDateThai(dateString, compact) {
+        if (!dateString) return '-';
+        const date = new Date(datePart(dateString) + 'T12:00:00Z');
+        return new Intl.DateTimeFormat('th-TH', {
+          timeZone: APP_TIME_ZONE,
+          day: 'numeric',
+          month: compact ? 'short' : 'long',
+          year: 'numeric'
+        }).format(date);
+      }
+
+      function shortDate(dateString) {
+        const date = new Date(dateString + 'T12:00:00Z');
+        return new Intl.DateTimeFormat('th-TH', { timeZone: APP_TIME_ZONE, day: 'numeric', month: 'short' }).format(date);
+      }
+
+      function formatDateTimeThai(dateTimeString) {
+        const date = parseAppDateTime(dateTimeString);
+        if (!date || isNaN(date.getTime())) return '-';
+        return new Intl.DateTimeFormat('th-TH', {
+          timeZone: APP_TIME_ZONE,
+          day: 'numeric',
+          month: 'short',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit'
+        }).format(date);
+      }
+
+      function parseAppDateTime(value) {
+        const text = String(value || '');
+        if (!text) return null;
+        if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(text)) return new Date(text + '+07:00');
+        if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(text)) return new Date(text + ':00+07:00');
+        return new Date(datePart(text) + 'T12:00:00+07:00');
+      }
+
+      function datePart(value) {
+        return String(value || '').slice(0, 10);
+      }
+
+      function currentDateTimeInput() {
+        const parts = new Intl.DateTimeFormat('en-US', {
+          timeZone: APP_TIME_ZONE,
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+          hourCycle: 'h23'
+        }).formatToParts(new Date()).reduce((result, part) => {
+          result[part.type] = part.value;
+          return result;
+        }, {});
+        return parts.year + '-' + parts.month + '-' + parts.day + 'T' + parts.hour + ':' + parts.minute;
+      }
+
+      function dateTimeForSelectedDate() {
+        const time = state.selectedDate === todayInput() ? currentDateTimeInput().slice(11) : '12:00';
+        return state.selectedDate + 'T' + time;
+      }
+
+      function toDateTimeInput(value) {
+        const text = String(value || '');
+        if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(text)) return text.slice(0, 16);
+        return datePart(text) + 'T12:00';
+      }
+
+      function formatTime(date) {
+        return new Intl.DateTimeFormat('th-TH', { timeZone: APP_TIME_ZONE, hour: '2-digit', minute: '2-digit' }).format(date);
+      }
+
+      function formatNumber(value, integer) {
+        const number = Number(value) || 0;
+        return (integer ? THAI_INTEGER : THAI_NUMBER).format(number);
+      }
+
+      function sum(items, key) {
+        return items.reduce((total, item) => total + (Number(item[key]) || 0), 0);
+      }
+
+      function sortByUpdatedDesc(a, b) {
+        return String(b.updatedAt).localeCompare(String(a.updatedAt));
+      }
+
+      function sortByCreatedDesc(a, b) {
+        return String(b.createdAt).localeCompare(String(a.createdAt)) || sortByUpdatedDesc(a, b);
+      }
+
+      function escapeHtml(value) {
+        return String(value === undefined || value === null ? '' : value)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#039;');
+      }
+
+      function setBusy(isBusy) {
+        state.busy = isBusy;
+        $('#loading-cover').classList.toggle('show', isBusy);
+        $('#refresh-button').disabled = isBusy;
+        $('#save-entry-button').disabled = isBusy;
+      }
+
+      function showToast(message, isError) {
+        const toast = $('#toast');
+        toast.textContent = message;
+        toast.classList.toggle('error', Boolean(isError));
+        toast.classList.add('show');
+        window.clearTimeout(state.toastTimer);
+        state.toastTimer = window.setTimeout(() => toast.classList.remove('show'), 3200);
+      }
+
+      function errorMessage(error) {
+        return error && error.message ? error.message : 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง';
+      }
+    </script>
+  </body>
+</html>
