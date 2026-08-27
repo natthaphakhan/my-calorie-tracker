@@ -4,6 +4,9 @@
     <base target="_top">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
       :root {
         --ink: #132238;
@@ -431,6 +434,7 @@
         font-weight: 800;
       }
 
+      .add-entry-button { white-space: nowrap; }
       .primary-button { color: #fff; background: var(--primary); box-shadow: 0 5px 12px rgba(47, 111, 237, 0.18); }
       .primary-button:hover { background: #205fd8; transform: translateY(-1px); }
       .secondary-button { color: var(--ink); background: var(--surface); border: 1px solid var(--line); }
@@ -591,6 +595,20 @@
         .brand-mark { width: 36px; height: 36px; flex-basis: 36px; border-radius: 11px; }
         .brand h1 { font-size: 15px; }
         .sync-text { display: none; }
+        .add-entry-button {
+          position: fixed;
+          z-index: 10;
+          right: calc(18px + env(safe-area-inset-right));
+          bottom: calc(18px + env(safe-area-inset-bottom));
+          padding: 13px 18px;
+          border-radius: 999px;
+          box-shadow: 0 12px 26px rgba(32, 95, 216, 0.26), 0 3px 8px rgba(34, 59, 95, 0.12);
+        }
+        .toast {
+          right: 18px;
+          bottom: calc(82px + env(safe-area-inset-bottom));
+          max-width: calc(100vw - 36px);
+        }
         .hero { display: block; padding: 22px 18px; }
         .hero-actions { margin-top: 18px; }
         .date-control { justify-content: space-between; }
@@ -633,6 +651,7 @@
         </div>
         <div class="topbar-actions">
           <span class="sync-text" id="sync-text">กำลังโหลดข้อมูล...</span>
+          <button class="primary-button add-entry-button" id="add-entry-button" type="button">+ เพิ่มรายการ</button>
           <button class="icon-button" id="refresh-button" type="button" aria-label="รีเฟรชข้อมูล" title="รีเฟรชข้อมูล">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8.1 8.1 0 0 0-15.5-2M4 5v4h4"></path><path d="M4 13a8.1 8.1 0 0 0 15.5 2M20 19v-4h-4"></path></svg>
           </button>
@@ -710,7 +729,6 @@
                 <h2>รายการของวัน</h2>
                 <p id="daily-list-caption">วันที่เลือก</p>
               </div>
-              <button class="primary-button" id="add-entry-button" type="button">+ เพิ่มรายการ</button>
             </div>
             <div class="progress-block">
               <div class="progress-header"><span>ความคืบหน้าเทียบกับ TDEE</span><span id="progress-percent">ยังไม่มี TDEE</span></div>
@@ -728,7 +746,6 @@
             </div>
             <div class="section-actions">
               <input class="search-box" id="records-search" type="search" placeholder="ค้นหาชื่ออาหารหรือหมายเหตุ..." aria-label="ค้นหารายการอาหาร">
-              <button class="secondary-button" id="add-entry-button-bottom" type="button">+ เพิ่มรายการ</button>
             </div>
           </div>
           <div class="table-wrap">
@@ -858,7 +875,6 @@
           });
         });
         $('#add-entry-button').addEventListener('click', () => openEntryModal());
-        $('#add-entry-button-bottom').addEventListener('click', () => openEntryModal());
         $('#close-modal-button').addEventListener('click', closeEntryModal);
         $('#cancel-modal-button').addEventListener('click', closeEntryModal);
         $('#entry-modal').addEventListener('click', (event) => {
