@@ -473,6 +473,39 @@
       .table-action:hover { color: var(--primary); border-color: #b8cdf8; background: var(--primary-soft); }
       .table-action.delete:hover { color: var(--danger); border-color: #f4bfc5; background: var(--danger-soft); }
 
+      .pagination {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding-top: 16px;
+      }
+
+      .pagination-summary { color: var(--muted); font-size: 12px; }
+
+      .pagination-controls {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+      }
+
+      .pagination-button {
+        min-width: 34px;
+        height: 34px;
+        padding: 5px 8px;
+        color: var(--muted);
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 9px;
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      .pagination-button:hover:not(:disabled) { color: var(--primary); border-color: #b8cdf8; background: var(--primary-soft); }
+      .pagination-button.active { color: #fff; background: var(--primary); border-color: var(--primary); }
+      .pagination-button:disabled { cursor: default; opacity: 0.45; }
+      .pagination-ellipsis { padding: 0 2px; color: var(--muted); }
+
       .empty-state {
         padding: 30px 14px;
         color: var(--muted);
@@ -624,6 +657,8 @@
         .search-box { width: 100%; }
         .section-actions { align-items: stretch; flex-direction: column; }
         .range-tabs { width: max-content; }
+        .pagination { align-items: flex-start; flex-direction: column; }
+        .pagination-controls { flex-wrap: wrap; }
         .food-row { align-items: flex-start; }
         .food-numbers { text-align: right; }
         .form-grid { grid-template-columns: 1fr; }
@@ -765,6 +800,7 @@
               <tbody id="records-table-body"></tbody>
             </table>
           </div>
+          <nav class="pagination" id="records-pagination" aria-label="หน้ารายการอาหาร" hidden></nav>
         </section>
       </main>
     </div>
@@ -832,6 +868,7 @@
 
     <script>
       const APP_TIME_ZONE = 'Asia/Bangkok';
+      const RECORDS_PAGE_SIZE = 10;
       const THAI_NUMBER = new Intl.NumberFormat('th-TH', { maximumFractionDigits: 2 });
       const THAI_INTEGER = new Intl.NumberFormat('th-TH', { maximumFractionDigits: 0 });
       const state = {
@@ -840,6 +877,7 @@
         selectedDate: todayInput(),
         rangeDays: 7,
         search: '',
+        recordsPage: 1,
         busy: false,
         toastTimer: null
       };
@@ -886,6 +924,13 @@
         });
         $('#records-search').addEventListener('input', (event) => {
           state.search = event.target.value.trim().toLowerCase();
+          state.recordsPage = 1;
+          renderRecords();
+        });
+        $('#records-pagination').addEventListener('click', (event) => {
+          const button = event.target.closest('[data-records-page]');
+          if (!button || button.disabled) return;
+          state.recordsPage = Number(button.dataset.recordsPage);
           renderRecords();
         });
         document.addEventListener('keydown', (event) => {
@@ -1095,14 +1140,19 @@
             return (record.title + ' ' + record.remark).toLowerCase().includes(state.search);
           })
           .sort(sortByCreatedDesc);
+        const pageCount = Math.ceil(filtered.length / RECORDS_PAGE_SIZE);
+        state.recordsPage = pageCount ? Math.min(state.recordsPage, pageCount) : 1;
+        const startIndex = (state.recordsPage - 1) * RECORDS_PAGE_SIZE;
+        const pageRecords = filtered.slice(startIndex, startIndex + RECORDS_PAGE_SIZE);
         $('#record-count').textContent = formatNumber(filtered.length, true) + ' รายการ';
 
         if (!filtered.length) {
           $('#records-table-body').innerHTML = '<tr><td colspan="8"><div class="empty-state"><strong>' + (state.search ? 'ไม่พบรายการที่ค้นหา' : 'ยังไม่มีข้อมูล') + '</strong><span>' + (state.search ? 'ลองใช้คำค้นหาอื่น' : 'เพิ่มรายการแรกของคุณได้จากปุ่มด้านบน') + '</span></div></td></tr>';
+          renderRecordsPagination(0, 0, 0, 0);
           return;
         }
 
-        $('#records-table-body').innerHTML = filtered.map((record) => {
+        $('#records-table-body').innerHTML = pageRecords.map((record) => {
           return '<tr>'
             + '<td>' + formatDateTimeThai(record.createdAt) + '</td>'
             + '<td><div class="table-title">' + escapeHtml(record.title) + '</div><div class="table-subtitle">' + (record.remark ? escapeHtml(record.remark) : 'ไม่มีหมายเหตุ') + '</div></td>'
@@ -1124,6 +1174,41 @@
         document.querySelectorAll('[data-delete-id]').forEach((button) => {
           button.addEventListener('click', () => deleteEntry(button.dataset.deleteId));
         });
+        renderRecordsPagination(filtered.length, startIndex + 1, startIndex + pageRecords.length, pageCount);
+      }
+
+      function renderRecordsPagination(totalItems, startItem, endItem, pageCount) {
+        const pagination = $('#records-pagination');
+        if (pageCount <= 1) {
+          pagination.hidden = true;
+          pagination.innerHTML = '';
+          return;
+        }
+
+        const pageItems = paginationPages(state.recordsPage, pageCount);
+        pagination.hidden = false;
+        pagination.innerHTML = '<span class="pagination-summary">แสดง ' + formatNumber(startItem, true) + '–' + formatNumber(endItem, true) + ' จาก ' + formatNumber(totalItems, true) + ' รายการ</span>'
+          + '<div class="pagination-controls">'
+          + paginationButton('ก่อนหน้า', state.recordsPage - 1, state.recordsPage === 1, 'ย้อนกลับ')
+          + pageItems.map((page) => page === 'ellipsis'
+            ? '<span class="pagination-ellipsis" aria-hidden="true">…</span>'
+            : paginationButton(String(page), page, false, 'ไปหน้าที่ ' + page, page === state.recordsPage)).join('')
+          + paginationButton('ถัดไป', state.recordsPage + 1, state.recordsPage === pageCount, 'ไปหน้าถัดไป')
+          + '</div>';
+      }
+
+      function paginationButton(label, page, disabled, ariaLabel, active) {
+        return '<button class="pagination-button' + (active ? ' active' : '') + '" type="button" data-records-page="' + page + '" aria-label="' + ariaLabel + '"' + (active ? ' aria-current="page"' : '') + (disabled ? ' disabled' : '') + '>' + label + '</button>';
+      }
+
+      function paginationPages(currentPage, pageCount) {
+        if (pageCount <= 7) {
+          return Array.from({ length: pageCount }, (_, index) => index + 1);
+        }
+
+        if (currentPage <= 4) return [1, 2, 3, 4, 5, 'ellipsis', pageCount];
+        if (currentPage >= pageCount - 3) return [1, 'ellipsis', pageCount - 4, pageCount - 3, pageCount - 2, pageCount - 1, pageCount];
+        return [1, 'ellipsis', currentPage - 1, currentPage, currentPage + 1, 'ellipsis', pageCount];
       }
 
       function renderFormTotals() {
