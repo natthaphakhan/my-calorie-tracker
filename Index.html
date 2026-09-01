@@ -1011,7 +1011,7 @@
       }
 
       function deleteEntry(id) {
-        const record = state.records.find((item) => item.id === id);
+        const record = state.records.find((item) => String(item.id) === String(id));
         if (!record || !window.google || !google.script || !google.script.run) return;
         if (!window.confirm('ต้องการลบรายการ “' + record.title + '” ใช่หรือไม่?')) return;
 
@@ -1167,7 +1167,7 @@
 
         document.querySelectorAll('[data-edit-id]').forEach((button) => {
           button.addEventListener('click', () => {
-            const record = state.records.find((item) => item.id === button.dataset.editId);
+            const record = state.records.find((item) => String(item.id) === String(button.dataset.editId));
             if (record) openEntryModal(record);
           });
         });

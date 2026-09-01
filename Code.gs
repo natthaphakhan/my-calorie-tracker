@@ -1,6 +1,9 @@
 const APP_CONFIG = Object.freeze({
   SHEET_NAME: 'sheet_1',
   TIME_ZONE: 'Asia/Bangkok',
+  ID_MIGRATION_PROPERTY: 'RUNNING_ID_MIGRATION_VERSION',
+  ID_COUNTER_PROPERTY: 'RUNNING_ID_LAST',
+  ID_MIGRATION_VERSION: '1',
   HEADERS: [
     'id',
     'title',
@@ -72,6 +75,8 @@ function setupSheet() {
     }
 
     formatSheet_(sheet);
+    migrateRunningIds_(sheet);
+    validateRunningIds_(sheet);
     return {
       ok: true,
       sheetName: APP_CONFIG.SHEET_NAME,
@@ -86,6 +91,17 @@ function setupSheet() {
  * Returns all data needed to render the dashboard and CRUD list.
  */
 function getAppData() {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+
+  try {
+    return buildAppData_();
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function buildAppData_() {
   const records = readRecords_();
   return {
     records: records,
@@ -107,9 +123,20 @@ function saveRecord(payload) {
     const sheet = ensureSheet_();
     const records = readRecords_();
     const data = payload || {};
-    const existing = data.id ? records.find(function (record) {
-      return record.id === String(data.id);
-    }) : null;
+    const hasId = cleanText_(data.id) !== '';
+    let existing = null;
+    if (hasId) {
+      const requestedId = parseRunningId_(data.id);
+      if (requestedId === null) {
+        throw new Error('รหัสรายการต้องเป็นเลขจำนวนเต็มบวก');
+      }
+      existing = records.find(function (record) {
+        return record.id === requestedId;
+      });
+      if (!existing) {
+        throw new Error('ไม่พบรายการที่ต้องการแก้ไข');
+      }
+    }
 
     const title = requireText_(data.title, 'กรุณากรอกชื่ออาหาร');
     const unit = requireNumber_(data.unit, 'กรุณากรอกปริมาณหน่วย', 0.000001);
@@ -128,7 +155,7 @@ function saveRecord(payload) {
       data.createdAt || (existing && existing.createdAt) || formatDateTimeInput_(new Date())
     );
     const now = new Date();
-    const id = existing ? existing.id : Utilities.getUuid();
+    const id = existing ? existing.id : nextRunningId_();
     const row = [
       id,
       title,
@@ -151,7 +178,7 @@ function saveRecord(payload) {
       sheet.getRange(nextRow, 1, 1, APP_CONFIG.HEADERS.length).setValues([row]);
     }
 
-    return getAppData();
+    return buildAppData_();
   } finally {
     lock.releaseLock();
   }
@@ -166,13 +193,22 @@ function deleteRecord(id) {
 
   try {
     const sheet = ensureSheet_();
-    const rowNumber = findRowNumberById_(sheet, String(id || ''));
+    const records = readRecords_();
+    const requestedId = parseRunningId_(id);
+    if (requestedId === null) {
+      throw new Error('รหัสรายการต้องเป็นเลขจำนวนเต็มบวก');
+    }
+    if (!records.some(function (record) { return record.id === requestedId; })) {
+      throw new Error('ไม่พบรายการที่ต้องการลบ');
+    }
+
+    const rowNumber = findRowNumberById_(sheet, requestedId);
     if (rowNumber < 2) {
       throw new Error('ไม่พบรายการที่ต้องการลบ');
     }
 
     sheet.deleteRow(rowNumber);
-    return getAppData();
+    return buildAppData_();
   } finally {
     lock.releaseLock();
   }
@@ -225,6 +261,7 @@ function formatSheet_(sheet) {
     .setBackground('#e8f0fe')
     .setFontColor('#16325c');
 
+  sheet.getRange('A:A').setNumberFormat('0');
   sheet.getRange('C:C').setNumberFormat('0.##');
   sheet.getRange('D:D').setNumberFormat('0.##');
   sheet.getRange('E:E').setNumberFormat('0.##');
@@ -234,7 +271,7 @@ function formatSheet_(sheet) {
   sheet.getRange('J:J').setNumberFormat('yyyy-mm-dd HH:mm:ss');
   sheet.getRange('K:K').setNumberFormat('yyyy-mm-dd HH:mm:ss');
 
-  const widths = [170, 220, 115, 90, 135, 260, 115, 135, 100, 115, 160];
+  const widths = [75, 220, 115, 90, 135, 260, 115, 135, 100, 115, 160];
   widths.forEach(function (width, index) {
     sheet.setColumnWidth(index + 1, width);
   });
@@ -242,6 +279,8 @@ function formatSheet_(sheet) {
 
 function readRecords_() {
   const sheet = ensureSheet_();
+  migrateRunningIds_(sheet);
+  validateRunningIds_(sheet);
   const lastRow = sheet.getLastRow();
   if (lastRow < 2) {
     return [];
@@ -250,15 +289,147 @@ function readRecords_() {
   const values = sheet.getRange(2, 1, lastRow - 1, APP_CONFIG.HEADERS.length).getValues();
   return values
     .map(recordFromRow_)
-    .filter(function (record) { return record.id !== ''; })
+    .filter(function (record) { return record.id !== null; })
     .sort(function (a, b) {
       return b.updatedAt.localeCompare(a.updatedAt) || b.createdAt.localeCompare(a.createdAt);
     });
 }
 
+function migrateRunningIds_(sheet) {
+  const properties = PropertiesService.getScriptProperties();
+  if (properties.getProperty(APP_CONFIG.ID_MIGRATION_PROPERTY) === APP_CONFIG.ID_MIGRATION_VERSION) {
+    return;
+  }
+
+  let nextId = 1;
+  const lastRow = sheet.getLastRow();
+  if (lastRow >= 2) {
+    const values = sheet.getRange(2, 1, lastRow - 1, APP_CONFIG.HEADERS.length).getValues();
+    const seen = Object.create(null);
+    const migratedIds = values.map(function (row) {
+      if (isBlankRow_(row)) {
+        return [row[0]];
+      }
+
+      const legacyId = cleanText_(row[0]);
+      const isValidLegacyId = isLegacyUuid_(legacyId) || parseRunningIdValue_(row[0]) !== null;
+      if (!isValidLegacyId) {
+        throw new Error('รหัสรายการเดิมต้องเป็น UUID หรือเลขจำนวนเต็มบวก');
+      }
+      if (seen[legacyId.toLowerCase()]) {
+        throw new Error('รหัสรายการเดิม ' + legacyId + ' ซ้ำกันใน sheet_1');
+      }
+      seen[legacyId.toLowerCase()] = true;
+
+      const id = nextId;
+      nextId += 1;
+      return [id];
+    });
+    sheet.getRange(2, 1, migratedIds.length, 1).setValues(migratedIds);
+  }
+
+  properties.setProperty(APP_CONFIG.ID_COUNTER_PROPERTY, String(nextId - 1));
+  properties.setProperty(APP_CONFIG.ID_MIGRATION_PROPERTY, APP_CONFIG.ID_MIGRATION_VERSION);
+}
+
+function validateRunningIds_(sheet) {
+  const lastRow = sheet.getLastRow();
+  let maxId = 0;
+  const seen = Object.create(null);
+
+  if (lastRow >= 2) {
+    const values = sheet.getRange(2, 1, lastRow - 1, APP_CONFIG.HEADERS.length).getValues();
+    values.forEach(function (row, index) {
+      if (isBlankRow_(row)) {
+        return;
+      }
+
+      const id = parseRunningIdValue_(row[0]);
+      const rowNumber = index + 2;
+      if (id === null) {
+        throw new Error('รหัสรายการในแถวที่ ' + rowNumber + ' ต้องเป็นเลขจำนวนเต็มบวก');
+      }
+      if (seen[String(id)]) {
+        throw new Error('รหัสรายการ ' + id + ' ซ้ำกันใน sheet_1');
+      }
+      seen[String(id)] = true;
+      maxId = Math.max(maxId, id);
+    });
+  }
+
+  ensureRunningIdCounterAtLeast_(maxId);
+}
+
+function isBlankRow_(row) {
+  return row.every(function (value) {
+    return value === '' || value === null;
+  });
+}
+
+function parseRunningId_(value) {
+  if (typeof value === 'number') {
+    return parseRunningIdValue_(value);
+  }
+  return parseRunningIdInput_(value);
+}
+
+function parseRunningIdValue_(value) {
+  return typeof value === 'number' && Number.isSafeInteger(value) && value > 0
+    ? value
+    : null;
+}
+
+function parseRunningIdInput_(value) {
+  const text = cleanText_(value);
+  if (!/^[1-9]\d*$/.test(text)) {
+    return null;
+  }
+  const id = Number(text);
+  return Number.isSafeInteger(id) ? id : null;
+}
+
+function isLegacyUuid_(value) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
+}
+
+function getRunningIdCounter_() {
+  const raw = PropertiesService.getScriptProperties()
+    .getProperty(APP_CONFIG.ID_COUNTER_PROPERTY);
+  if (raw === null || raw === '') {
+    return 0;
+  }
+
+  if (!/^\d+$/.test(raw)) {
+    throw new Error('ตัวนับรหัสรายการไม่ถูกต้อง');
+  }
+  const counter = Number(raw);
+  if (!Number.isSafeInteger(counter) || counter < 0) {
+    throw new Error('ตัวนับรหัสรายการไม่ถูกต้อง');
+  }
+  return counter;
+}
+
+function ensureRunningIdCounterAtLeast_(minimum) {
+  const counter = getRunningIdCounter_();
+  if (minimum > counter) {
+    PropertiesService.getScriptProperties()
+      .setProperty(APP_CONFIG.ID_COUNTER_PROPERTY, String(minimum));
+  }
+}
+
+function nextRunningId_() {
+  const nextId = getRunningIdCounter_() + 1;
+  if (!Number.isSafeInteger(nextId)) {
+    throw new Error('ไม่สามารถสร้างรหัสรายการเพิ่มได้');
+  }
+  PropertiesService.getScriptProperties()
+    .setProperty(APP_CONFIG.ID_COUNTER_PROPERTY, String(nextId));
+  return nextId;
+}
+
 function recordFromRow_(row) {
   return {
-    id: cleanText_(row[0]),
+    id: parseRunningIdValue_(row[0]),
     title: cleanText_(row[1]),
     totalCalorie: numberOrZero_(row[2]),
     unit: numberOrZero_(row[3]),
@@ -273,13 +444,14 @@ function recordFromRow_(row) {
 }
 
 function findRowNumberById_(sheet, id) {
-  if (!id || sheet.getLastRow() < 2) {
+  const targetId = parseRunningId_(id);
+  if (targetId === null || sheet.getLastRow() < 2) {
     return -1;
   }
 
-  const ids = sheet.getRange(2, 1, sheet.getLastRow() - 1, 1).getDisplayValues();
+  const ids = sheet.getRange(2, 1, sheet.getLastRow() - 1, 1).getValues();
   for (let index = 0; index < ids.length; index += 1) {
-    if (String(ids[index][0]) === id) {
+    if (parseRunningIdValue_(ids[index][0]) === targetId) {
       return index + 2;
     }
   }
