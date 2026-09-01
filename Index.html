@@ -785,8 +785,9 @@
           <input id="entry-id" type="hidden">
           <div class="form-grid">
             <div class="form-field full">
-              <label class="form-label" for="entry-title">ชื่ออาหาร</label>
-              <input class="form-input" id="entry-title" type="text" maxlength="120" placeholder="เช่น ข้าวกะเพราไก่" required>
+              <label class="form-label" for="entry-title">ชื่ออาหาร <span>แนะนำจากรายการที่บันทึกไว้</span></label>
+              <input class="form-input" id="entry-title" type="text" list="food-name-suggestions" autocomplete="off" maxlength="120" placeholder="เช่น ข้าวกะเพราไก่" required>
+              <datalist id="food-name-suggestions"></datalist>
             </div>
             <div class="form-field">
               <label class="form-label" for="entry-date">วันที่และเวลารับประทาน</label>
@@ -1012,12 +1013,31 @@
       }
 
       function renderAll() {
+        renderFoodNameSuggestions();
         $('#hero-date-title').textContent = heroDateTitle(state.selectedDate);
         $('#daily-list-caption').textContent = formatDateThai(state.selectedDate);
         renderDashboard();
         renderTrend();
         renderDailyList();
         renderRecords();
+      }
+
+      function renderFoodNameSuggestions() {
+        const datalist = $('#food-name-suggestions');
+        if (!datalist) return;
+
+        const seen = new Set();
+        datalist.replaceChildren();
+        state.records.forEach((record) => {
+          const title = String(record.title || '').trim();
+          const key = title.toLocaleLowerCase();
+          if (!title || seen.has(key)) return;
+
+          seen.add(key);
+          const option = document.createElement('option');
+          option.value = title;
+          datalist.appendChild(option);
+        });
       }
 
       function renderDashboard() {
