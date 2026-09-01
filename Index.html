@@ -570,6 +570,9 @@
       .form-input[type="number"] { text-align: right; }
       textarea { min-height: 80px; resize: vertical; }
 
+      .food-suggestion-hint { margin: 7px 0 0; color: var(--muted); font-size: 11px; }
+      .food-suggestion-hint.is-suggested { color: var(--teal); }
+
       .calculated-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 16px; }
       .calculated-item { padding: 12px; background: var(--teal-soft); border-radius: 11px; }
       .calculated-item span { display: block; color: var(--teal); font-size: 11px; }
@@ -824,6 +827,7 @@
               <label class="form-label" for="entry-title">ชื่ออาหาร <span>แนะนำจากรายการที่บันทึกไว้</span></label>
               <input class="form-input" id="entry-title" type="text" list="food-name-suggestions" autocomplete="off" maxlength="120" placeholder="เช่น ข้าวกะเพราไก่" required>
               <datalist id="food-name-suggestions"></datalist>
+              <p class="food-suggestion-hint" id="food-suggestion-hint" aria-live="polite" hidden></p>
             </div>
             <div class="form-field">
               <label class="form-label" for="entry-date">วันที่และเวลารับประทาน</label>
@@ -831,7 +835,7 @@
             </div>
             <div class="form-field">
               <label class="form-label" for="entry-unit">ปริมาณ / หน่วย <span>ใช้เป็นจำนวน</span></label>
-              <input class="form-input" id="entry-unit" type="number" min="0.01" step="0.01" placeholder="1" required>
+              <input class="form-input" id="entry-unit" type="number" min="0.01" step="0.01" value="1" placeholder="1" required>
             </div>
             <div class="form-field">
               <label class="form-label" for="entry-calorie-per-unit">แคลอรีต่อหน่วย</label>
@@ -879,6 +883,7 @@
         rangeDays: 7,
         search: '',
         recordsPage: 1,
+        foodSuggestionKey: null,
         busy: false,
         toastTimer: null
       };
@@ -920,6 +925,8 @@
           if (event.target === $('#entry-modal')) closeEntryModal();
         });
         $('#entry-form').addEventListener('submit', submitEntry);
+        $('#entry-title').addEventListener('input', updateFoodSuggestion);
+        $('#entry-title').addEventListener('change', updateFoodSuggestion);
         ['entry-unit', 'entry-calorie-per-unit', 'entry-protein-per-unit'].forEach((id) => {
           $('#' + id).addEventListener('input', renderFormTotals);
         });
@@ -1038,11 +1045,13 @@
         $('#entry-id').value = editing ? record.id : '';
         $('#entry-title').value = editing ? record.title : '';
         $('#entry-date').value = editing ? toDateTimeInput(record.createdAt) : dateTimeForSelectedDate();
-        $('#entry-unit').value = editing ? record.unit : '';
+        $('#entry-unit').value = editing ? record.unit : '1';
         $('#entry-calorie-per-unit').value = editing ? record.caloriePerUnit : '';
         $('#entry-protein-per-unit').value = editing ? record.proteinPerUnit : '';
         $('#entry-tdee').value = editing ? record.tdee : (state.latestTdee || '');
         $('#entry-remark').value = editing ? record.remark : '';
+        state.foodSuggestionKey = editing ? normalizeFoodName(record.title) : null;
+        setFoodSuggestionHint('', false);
         $('#save-entry-button').textContent = editing ? 'บันทึกการแก้ไข' : 'บันทึกรายการ';
         updateTdeeHint();
         renderFormTotals();
@@ -1075,7 +1084,7 @@
         datalist.replaceChildren();
         state.records.forEach((record) => {
           const title = String(record.title || '').trim();
-          const key = title.toLocaleLowerCase();
+          const key = normalizeFoodName(title);
           if (!title || seen.has(key)) return;
 
           seen.add(key);
@@ -1239,6 +1248,58 @@
         $('#form-total-protein').textContent = formatNumber(unit * proteinPerUnit) + ' g';
       }
 
+      function updateFoodSuggestion() {
+        const title = $('#entry-title').value;
+        const key = normalizeFoodName(title);
+        if (key === state.foodSuggestionKey) return;
+
+        state.foodSuggestionKey = key;
+        if (!key) {
+          $('#entry-calorie-per-unit').value = '';
+          $('#entry-protein-per-unit').value = '';
+          setFoodSuggestionHint('', false);
+          renderFormTotals();
+          return;
+        }
+
+        const suggestion = findFoodSuggestion(title);
+        if (!suggestion) {
+          $('#entry-calorie-per-unit').value = '';
+          $('#entry-protein-per-unit').value = '';
+          setFoodSuggestionHint('ยังไม่มีข้อมูลชื่อนี้ กรอกแคลอรีและโปรตีนต่อหน่วยเองได้', false);
+          renderFormTotals();
+          return;
+        }
+
+        $('#entry-calorie-per-unit').value = suggestion.caloriePerUnit;
+        $('#entry-protein-per-unit').value = suggestion.proteinPerUnit;
+        setFoodSuggestionHint(
+          'เติมค่าจากรายการล่าสุดแล้ว: ' + formatNumber(suggestion.caloriePerUnit) + ' kcal · โปรตีน ' + formatNumber(suggestion.proteinPerUnit) + ' g · แก้ไขได้',
+          true
+        );
+        renderFormTotals();
+      }
+
+      function findFoodSuggestion(title) {
+        const key = normalizeFoodName(title);
+        if (!key) return null;
+
+        return state.records
+          .filter((record) => normalizeFoodName(record.title) === key)
+          .sort(sortByUpdatedDesc)[0] || null;
+      }
+
+      function normalizeFoodName(value) {
+        return String(value || '').trim().replace(/\s+/g, ' ').toLocaleLowerCase();
+      }
+
+      function setFoodSuggestionHint(message, isSuggested) {
+        const hint = $('#food-suggestion-hint');
+        hint.textContent = message;
+        hint.hidden = !message;
+        hint.classList.toggle('is-suggested', Boolean(isSuggested));
+      }
+
       function updateTdeeHint() {
         $('#tdee-form-label').textContent = state.latestTdee === null ? 'รายการแรกต้องกรอก' : 'เติมค่าล่าสุดไว้ให้แล้ว แก้ไขได้';
         $('#tdee-form-hint').textContent = state.latestTdee === null
@@ -1369,7 +1430,8 @@
       }
 
       function sortByUpdatedDesc(a, b) {
-        return String(b.updatedAt).localeCompare(String(a.updatedAt));
+        return String(b.updatedAt || '').localeCompare(String(a.updatedAt || ''))
+          || String(b.createdAt || '').localeCompare(String(a.createdAt || ''));
       }
 
       function sortByCreatedDesc(a, b) {
